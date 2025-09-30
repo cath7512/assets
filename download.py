@@ -19,10 +19,13 @@ def condition(row, df):
     # 최근 5일, 10일 데이터가 부족하면 False
     if pos < 9:
         return False
-    avg5 = df['Close'].iloc[pos-4:pos+1].mean()
-    avg10 = df['Close'].iloc[pos-9:pos+1].mean()
+    close = df['Close']
+    if isinstance(close, pd.DataFrame):
+        close = close.iloc[:, 0]
+    avg5 = close.iloc[pos-4:pos+1].mean()
+    avg10 = close.iloc[pos-9:pos+1].mean()
     # mean()은 항상 단일 float을 반환하므로, 비교 결과는 단일 bool
-    return bool(avg5 < avg10)
+    return float(avg5) < float(avg10)
 
 # 구간 분리 함수
 def split_by_condition(df, cond_func):
@@ -48,7 +51,7 @@ charts_html = []
 
 for ticker in tickers:
     print(f"다운로드 중: {ticker}")
-    df = yf.download(ticker, start='1990-01-01')
+    df = yf.download(ticker, start='1990-01-01', auto_adjust=True)
     if df.empty:
         print(f"데이터 없음: {ticker}")
         continue
