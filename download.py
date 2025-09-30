@@ -47,15 +47,14 @@ def split_by_condition(df, cond_func):
     return segments
 
 # HTML 차트 코드 저장용 리스트
-charts_html = []
-
+charts_data = []
+js_data = 'var tickerData = {}\n'
 for ticker in tickers:
     print(f"다운로드 중: {ticker}")
     df = yf.download(ticker, start='1990-01-01', auto_adjust=True)
     if df.empty:
         print(f"데이터 없음: {ticker}")
         continue
-    # 티커명 가져오기
     info = yf.Ticker(ticker).info
     ticker_name = info.get('shortName', ticker)
 
@@ -64,12 +63,20 @@ for ticker in tickers:
     fig = go.Figure()
     for color, x, y in segments:
         fig.add_trace(go.Scatter(x=x, y=y, mode='lines', line=dict(color=color), name=color))
-
     fig.update_layout(title=ticker_name, width=600, height=400)
-
-    # 차트 HTML로 저장
     chart_html = fig.to_html(include_plotlyjs=False, full_html=False, default_height=200, default_width=300)
-    charts_html.append({'ticker': ticker, 'name': ticker_name, 'chart': chart_html})
+    charts_data.append({'ticker': ticker, 'name': ticker_name, 'chart': chart_html, 'df': df})
+
+    # JS 데이터 생성
+    dates = [str(d.date()) for d in df.index]
+    close = df['Close']
+    if isinstance(close, pd.DataFrame):
+        close = close.iloc[:, 0]
+    prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
+    colors = []
+    for idx, row in df.iterrows():
+        colors.append('red' if condition(row, df) else 'black')
+    js_data += f"tickerData['{ticker}'] = {{dates: {dates}, prices: {prices}, colors: {colors}}};\n"
 
 # index.html 생성
 html_head = '''
@@ -90,18 +97,10 @@ html_head = '''
 html_tail = '</body></html>'
 
 html_body = ''
-for chart in charts_html:
-    # 티커명 숨김, 버튼을 그래프 바로 아래에 위치
+for chart in charts_data:
     html_body += f'<div class="chart-container">\n        <div id="chart-{chart["ticker"]}"></div>\n        <div class="btn-group">\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'3m\')">3m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'6m\')">6m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'1y\')">1y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'5y\')">5y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'all\')">all</button>\n        </div>\n    </div>'
 
 # JS: 기간별 차트 업데이트 함수 구현 (초기값 5y)
-js_data = 'var tickerData = {};\n'
-for chart in charts_html:
-    # 날짜, 가격, 색상 배열을 JS로 변환
-    ticker = chart['ticker']
-    # ... 날짜, 가격, 색상 리스트 생성 ...
-    js_data += f"tickerData['{ticker}'] = {{dates: [...], prices: [...], colors: [...]}};\n"
-
 html_body += f'''
 <script>
 {js_data}
