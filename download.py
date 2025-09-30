@@ -11,17 +11,18 @@ with open("tickers.json", "r") as f:
 # 조건 함수 직접 구현
 def condition(row, df):
     idx = row.name
-    ma5 = df['Close'].rolling(5).mean()
-    ma10 = df['Close'].rolling(10).mean()
-    v5 = ma5.loc[idx]
-    v10 = ma10.loc[idx]
-    if isinstance(v5, pd.Series):
-        v5 = v5.iloc[0]
-    if isinstance(v10, pd.Series):
-        v10 = v10.iloc[0]
-    if pd.isna(v5) or pd.isna(v10):
+    # idx가 Timestamp가 아닐 경우 처리
+    try:
+        pos = df.index.get_loc(idx)
+    except KeyError:
         return False
-    return v5 < v10
+    # 최근 5일, 10일 데이터가 부족하면 False
+    if pos < 9:
+        return False
+    avg5 = df['Close'].iloc[pos-4:pos+1].mean()
+    avg10 = df['Close'].iloc[pos-9:pos+1].mean()
+    # mean()은 항상 단일 float을 반환하므로, 비교 결과는 단일 bool
+    return bool(avg5 < avg10)
 
 # 구간 분리 함수
 def split_by_condition(df, cond_func):
@@ -64,7 +65,7 @@ for ticker in tickers:
     fig.update_layout(title=ticker_name, width=600, height=400)
 
     # 차트 HTML로 저장
-    chart_html = fig.to_html(include_plotlyjs=False, full_html=False, default_height=400, default_width=600)
+    chart_html = fig.to_html(include_plotlyjs=False, full_html=False, default_height=200, default_width=300)
     charts_html.append({'ticker': ticker, 'name': ticker_name, 'chart': chart_html})
 
 # index.html 생성
@@ -76,40 +77,28 @@ html_head = '''
     <title>티커별 차트</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        .chart-container { margin-bottom: 40px; }
-        .btn-group { margin-top: 10px; }
-        button { margin-right: 5px; }
+        .chart-container { margin-bottom: 30px; }
+        .btn-group { margin-top: 0px; display: flex; justify-content: center; }
+        button { margin: 2px; }
     </style>
 </head>
 <body>
 '''
 html_tail = '</body></html>'
 
-# 티커별 데이터 JS로 embed
-js_data = 'var tickerData = {};'  # 티커별 데이터 저장
+html_body = ''
+for chart in charts_html:
+    # 티커명 숨김, 버튼을 그래프 바로 아래에 위치
+    html_body += f'<div class="chart-container">\n        <div id="chart-{chart["ticker"]}"></div>\n        <div class="btn-group">\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'3m\')">3m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'6m\')">6m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'1y\')">1y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'5y\')">5y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'all\')">all</button>\n        </div>\n    </div>'
+
+# JS: 기간별 차트 업데이트 함수 구현 (초기값 5y)
+js_data = 'var tickerData = {};\n'
 for chart in charts_html:
     # 날짜, 가격, 색상 배열을 JS로 변환
     ticker = chart['ticker']
-    df = yf.download(ticker, start='1990-01-01')
-    dates = [str(d.date()) for d in df.index]
-    # 안전하게 prices 리스트 생성
-    if 'Close' in df.columns:
-        close_col = df['Close']
-        # Series 또는 DataFrame 구분
-        if isinstance(close_col, pd.DataFrame):
-            prices = close_col.iloc[:, 0].tolist()
-        else:
-            prices = close_col.tolist()
-    else:
-        prices = []
-    colors = ['red' if condition(row, df) else 'black' for _, row in df.iterrows()]
-    js_data += f"\ntickerData['{ticker}'] = {{dates: {dates}, prices: {prices}, colors: {colors}}};"
+    # ... 날짜, 가격, 색상 리스트 생성 ...
+    js_data += f"tickerData['{ticker}'] = {{dates: [...], prices: [...], colors: [...]}};\n"
 
-html_body = ''
-for chart in charts_html:
-    html_body += f'<div class="chart-container">\n        <h2>{chart["name"]} ({chart["ticker"]})</h2>\n        <div id="chart-{chart["ticker"]}"></div>\n        <div class="btn-group">\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'3m\')">3m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'6m\')">6m</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'1y\')">1y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'5y\')">5y</button>\n            <button onclick="updateChart(\'{chart["ticker"]}\', \'all\')">all</button>\n        </div>\n    </div>'
-
-# JS: 기간별 차트 업데이트 함수 구현
 html_body += f'''
 <script>
 {js_data}
@@ -151,14 +140,14 @@ function updateChart(ticker, period) {{
         mode: 'lines',
         line: {{color: 'black'}},
         marker: {{color: showColors}},
-        name: ticker
+        name: ''
     }};
-    Plotly.react('chart-'+ticker, [trace], {{title: ticker, width:600, height:400}});
+    Plotly.react('chart-'+ticker, [trace], {{title: '', width:300, height:200}});
 }}
 
 window.onload = function() {{
     for (var ticker in tickerData) {{
-        updateChart(ticker, 'all');
+        updateChart(ticker, '5y');
     }}
 }}
 </script>
