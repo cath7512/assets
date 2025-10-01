@@ -32,6 +32,7 @@
                 const container = document.createElement("div");
                 container.className = "chart-container";
                 container.innerHTML = `
+            <h3 style="text-align:center;">${tickerData.name}</h3>
             <div id="chart-${ticker}"></div>
             <div class="btn-group">
               <button onclick="updateChart('${ticker}', '3m')">3m</button>
@@ -94,8 +95,8 @@
         };
         Plotly.react("chart-" + ticker, [trace], {
           title: "",
-          width: 300,
-          height: 200,
+          width: 500,
+          height: 400,
         });
       }
 
