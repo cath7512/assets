@@ -83,37 +83,59 @@
             chartDiv.className = "chart-div";
             container.appendChild(chartDiv);
             document.getElementById("charts-root").appendChild(container);
-            // 차트 데이터 준비
+            // 차트 데이터 준비 (null 값 제거)
             var traces = [];
+            function filterValidMonthly(d) {
+              var arr = [];
+              for (var i = 0; i < d.prices.length; i++) {
+                if (
+                  d.prices[i] !== null &&
+                  !isNaN(d.prices[i]) &&
+                  /^\d{4}-\d{2}-01$/.test(d.dates[i])
+                ) {
+                  arr.push({ date: d.dates[i], price: d.prices[i] });
+                }
+              }
+              return arr;
+            }
             if (keyDataArr.length > 0) {
-              traces.push({
-                x: keyDataArr[0].dates,
-                y: keyDataArr[0].prices,
-                mode: "lines",
-                line: { width: 2 },
-                name: keyDataArr[0].name || keyIndices[0],
-                yaxis: "y",
-              });
+              var arr0 = filterValidMonthly(keyDataArr[0]);
+              if (arr0.length > 1) {
+                traces.push({
+                  x: arr0.map((e) => e.date),
+                  y: arr0.map((e) => e.price),
+                  mode: "lines",
+                  line: { width: 2 },
+                  name: keyDataArr[0].name || keyIndices[0],
+                  yaxis: "y",
+                });
+              }
             }
             if (keyDataArr.length > 1) {
-              traces.push({
-                x: keyDataArr[1].dates,
-                y: keyDataArr[1].prices,
-                mode: "lines",
-                line: { width: 2 },
-                name: keyDataArr[1].name || keyIndices[1],
-                yaxis: "y2",
-              });
+              var arr1 = filterValidMonthly(keyDataArr[1]);
+              if (arr1.length > 1) {
+                traces.push({
+                  x: arr1.map((e) => e.date),
+                  y: arr1.map((e) => e.price),
+                  mode: "lines",
+                  line: { width: 2 },
+                  name: keyDataArr[1].name || keyIndices[1],
+                  yaxis: "y2",
+                });
+              }
             }
             if (keyDataArr.length > 2) {
-              traces.push({
-                x: keyDataArr[2].dates,
-                y: keyDataArr[2].prices,
-                mode: "lines",
-                line: { width: 2 },
-                name: keyDataArr[2].name || keyIndices[2],
-                yaxis: "y3",
-              });
+              var arr2 = filterValidMonthly(keyDataArr[2]);
+              if (arr2.length > 1) {
+                traces.push({
+                  x: arr2.map((e) => e.date),
+                  y: arr2.map((e) => e.price),
+                  mode: "lines",
+                  line: { width: 2 },
+                  name: keyDataArr[2].name || keyIndices[2],
+                  yaxis: "y3",
+                });
+              }
             }
             Plotly.newPlot("chart-key-indices", traces, {
               title: "",
@@ -228,18 +250,26 @@
         });
       }
 
+      // 개별 티커 차트도 매월 1일자만 표시하도록 updateChart 함수 수정
       function updateChart(ticker, period) {
         var data = window.tickerData[ticker];
         if (!data) return;
         var dates = data.dates;
         var prices = data.prices;
         var colors = data.colors;
-        var periodDates = getPeriodDates(dates, period);
-        var idxStart = dates.indexOf(periodDates[0]);
-        var idxEnd = dates.indexOf(periodDates[periodDates.length - 1]);
-        var showDates = dates.slice(idxStart, idxEnd + 1);
-        var showPrices = prices.slice(idxStart, idxEnd + 1);
-        var showColors = colors.slice(idxStart, idxEnd + 1);
+        // 매월 1일자만 필터링
+        var monthlyIdx = dates
+          .map((d, i) => (/^\d{4}-\d{2}-01$/.test(d) ? i : -1))
+          .filter((i) => i !== -1);
+        var monthlyDates = monthlyIdx.map((i) => dates[i]);
+        var monthlyPrices = monthlyIdx.map((i) => prices[i]);
+        var monthlyColors = monthlyIdx.map((i) => colors[i]);
+        var periodDates = getPeriodDates(monthlyDates, period);
+        var idxStart = monthlyDates.indexOf(periodDates[0]);
+        var idxEnd = monthlyDates.indexOf(periodDates[periodDates.length - 1]);
+        var showDates = monthlyDates.slice(idxStart, idxEnd + 1);
+        var showPrices = monthlyPrices.slice(idxStart, idxEnd + 1);
+        var showColors = monthlyColors.slice(idxStart, idxEnd + 1);
 
         // 구간별 색상 trace 분리
         var traces = [];
