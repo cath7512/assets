@@ -13,21 +13,19 @@ os.makedirs("tickers", exist_ok=True)
 # 조건 함수 직접 구현
 def condition(row, df):
     idx = row.name
-    # idx가 Timestamp가 아닐 경우 처리
     try:
         pos = df.index.get_loc(idx)
     except KeyError:
         return False
-    # 최근 5일, 10일 데이터가 부족하면 False
-    if pos < 9:
+    # 최근 20일, 60일 데이터가 부족하면 False
+    if pos < 59:
         return False
     close = df['Close']
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
-    avg5 = close.iloc[pos-4:pos+1].mean()
-    avg10 = close.iloc[pos-9:pos+1].mean()
-    # mean()은 항상 단일 float을 반환하므로, 비교 결과는 단일 bool
-    return float(avg5) < float(avg10)
+    avg20 = close.iloc[pos-19:pos+1].mean()
+    avg60 = close.iloc[pos-59:pos+1].mean()
+    return float(avg20) < float(avg60)
 
 for ticker in tickers:
     print(f"다운로드 중: {ticker}")
