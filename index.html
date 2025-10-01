@@ -32,6 +32,11 @@
         width: 400px;
         height: 300px;
         background: #fff;
+        /* 네 면 모두 파란색 윤곽선 */
+        border-top: 1.5px solid #1976d2;
+        border-right: 1.5px solid #1976d2;
+        border-bottom: 1.5px solid #1976d2;
+        border-left: 1.5px solid #1976d2;
       }
       .period-btns {
         margin-bottom: 2px;
@@ -59,6 +64,89 @@
         .then((response) => response.json())
         .then((data) => {
           const tickers = data.tickers;
+          const keyIndices = data["key indices"];
+          // key indices 차트 먼저 생성
+          Promise.all(
+            keyIndices.map((ticker) =>
+              fetch(`tickers/${ticker}.json`).then((r) => r.json())
+            )
+          ).then((keyDataArr) => {
+            // key indices 차트 컨테이너 생성
+            var container = document.createElement("div");
+            container.className = "chart-container";
+            var nameDiv = document.createElement("div");
+            nameDiv.className = "ticker-name";
+            nameDiv.innerText = "Key Indices";
+            container.appendChild(nameDiv);
+            var chartDiv = document.createElement("div");
+            chartDiv.id = "chart-key-indices";
+            chartDiv.className = "chart-div";
+            container.appendChild(chartDiv);
+            document.getElementById("charts-root").appendChild(container);
+            // 차트 데이터 준비
+            var traces = [];
+            if (keyDataArr.length > 0) {
+              traces.push({
+                x: keyDataArr[0].dates,
+                y: keyDataArr[0].prices,
+                mode: "lines",
+                line: { width: 2 },
+                name: keyDataArr[0].name || keyIndices[0],
+                yaxis: "y",
+              });
+            }
+            if (keyDataArr.length > 1) {
+              traces.push({
+                x: keyDataArr[1].dates,
+                y: keyDataArr[1].prices,
+                mode: "lines",
+                line: { width: 2 },
+                name: keyDataArr[1].name || keyIndices[1],
+                yaxis: "y2",
+              });
+            }
+            if (keyDataArr.length > 2) {
+              traces.push({
+                x: keyDataArr[2].dates,
+                y: keyDataArr[2].prices,
+                mode: "lines",
+                line: { width: 2 },
+                name: keyDataArr[2].name || keyIndices[2],
+                yaxis: "y3",
+              });
+            }
+            Plotly.newPlot("chart-key-indices", traces, {
+              title: "",
+              width: 400,
+              height: 300,
+              showlegend: true,
+              margin: { t: 24, l: 32, r: 16, b: 32 },
+              paper_bgcolor: "#fff",
+              xaxis: { title: "날짜" },
+              yaxis: {
+                title: keyDataArr[0]?.name || keyIndices[0],
+                titlefont: { color: "#1f77b4" },
+                tickfont: { color: "#1f77b4" },
+              },
+              yaxis2: {
+                title: keyDataArr[1]?.name || keyIndices[1],
+                titlefont: { color: "#ff7f0e" },
+                tickfont: { color: "#ff7f0e" },
+                overlaying: "y",
+                side: "right",
+                position: 1,
+              },
+              yaxis3: {
+                title: keyDataArr[2]?.name || keyIndices[2],
+                titlefont: { color: "#2ca02c" },
+                tickfont: { color: "#2ca02c" },
+                overlaying: "y",
+                side: "right",
+                position: 0.95,
+              },
+            });
+          });
+          // 나머지 개별 티커 차트 생성
           tickers.forEach((ticker) => {
             fetch(`tickers/${ticker}.json`)
               .then((response) => response.json())

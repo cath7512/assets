@@ -5,7 +5,10 @@ import os
 
 # 티커 목록 읽기
 with open("tickers.json", "r") as f:
-    tickers = json.load(f)["tickers"]
+    tj = json.load(f)
+    tickers = tj["tickers"]
+    key_indices = tj.get("key indices", [])
+    all_tickers = list(set(tickers + key_indices))
 
 # 데이터 저장 폴더 생성
 os.makedirs("tickers", exist_ok=True)
@@ -27,7 +30,7 @@ def condition(row, df):
     avg60 = close.iloc[pos-59:pos+1].mean()
     return float(avg20) < float(avg60)
 
-for ticker in tickers:
+for ticker in all_tickers:
     print(f"다운로드 중: {ticker}")
     df = yf.download(ticker, start='1990-01-01', auto_adjust=True)
     if df.empty:
