@@ -1,3 +1,12 @@
 {
-  "tickers": ["^GSPC", "^N225", "GC=F", "BTC-USD"]
+  "tickers": [
+    "^GSPC",
+    "^N225",
+    "GC=F",
+    "BTC-USD",
+    "^KS11",
+    "^FTSE",
+    "^GDAXI",
+    "CL=F"
+  ]
 }
