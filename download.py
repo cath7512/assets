@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
+from pandas_datareader import data as pdr
 
 # 티커 목록 읽기
 with open("tickers.json", "r") as f:
@@ -32,11 +33,21 @@ def condition(row, df):
 
 for ticker in all_tickers:
     print(f"다운로드 중: {ticker}")
-    df = yf.download(ticker, start='1990-01-01', auto_adjust=True)
+    if ticker in ["CPIAUCSL", "FEDFUNDS"]:
+        try:
+            df = pdr.DataReader(ticker, "fred", start="1990-01-01")
+            df = df.rename(columns={ticker: "Close"})
+        except Exception as e:
+            print(f"FRED 데이터 오류: {e}")
+            continue
+    else:
+        df = yf.download(ticker, start='1990-01-01', auto_adjust=True)
     if df.empty:
         print(f"데이터 없음: {ticker}")
         continue
-    info = yf.Ticker(ticker).info
+    info = {}
+    if ticker not in ["CPIAUCSL", "FEDFUNDS"]:
+        info = yf.Ticker(ticker).info
     ticker_name = info.get('shortName', ticker)
 
     # 날짜, 가격, 색상 데이터 생성
@@ -44,7 +55,12 @@ for ticker in all_tickers:
     close = df['Close']
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
-    prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
+    # CPIAUCSL이면 MoM 변동률로 저장
+    if ticker == "CPIAUCSL":
+        mom = close.pct_change() * 100
+        prices = [float(p) if pd.notnull(p) else None for p in mom]
+    else:
+        prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
     colors = []
     for idx, row in df.iterrows():
         colors.append('red' if condition(row, df) else 'black')

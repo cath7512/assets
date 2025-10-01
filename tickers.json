@@ -1,4 +1,4 @@
 {
   "tickers": ["^N225", "GC=F", "BTC-USD", "^KS11", "^FTSE", "^GDAXI", "CL=F"],
-  "key indices": ["^GSPC", "FEDFUNDS", "CPIMOM"]
+  "key indices": ["^GSPC", "FEDFUNDS", "CPIAUCSL"]
 }
