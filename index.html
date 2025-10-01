@@ -5,21 +5,48 @@
     <title>티커별 차트</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-      .chart-container {
-        margin-bottom: 30px;
-      }
-      .btn-group {
-        margin-top: 0px;
+      .charts-grid {
         display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
         justify-content: center;
       }
+      .chart-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 16px;
+      }
+      .chart-div {
+        margin-bottom: 4px;
+      }
+      .period-btns {
+        margin-bottom: 4px;
+        margin-top: 0px;
+      }
+      .ticker-name {
+        margin-top: 2px;
+        font-weight: bold;
+        font-size: 1.1em;
+        text-align: center;
+      }
       button {
-        margin: 2px;
+        margin: 0;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background: #f5f5f5;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #e0e0e0;
       }
     </style>
   </head>
   <body>
-    <div id="charts-root"></div>
+    <div class="charts-grid" id="charts-root"></div>
     <script>
       fetch("tickers.json")
         .then((response) => response.json())
@@ -29,25 +56,42 @@
             fetch(`tickers/${ticker}.json`)
               .then((response) => response.json())
               .then((tickerData) => {
-                const container = document.createElement("div");
-                container.className = "chart-container";
-                container.innerHTML = `
-            <h3 style="text-align:center;">${tickerData.name}</h3>
-            <div id="chart-${ticker}"></div>
-            <div class="btn-group">
-              <button onclick="updateChart('${ticker}', '3m')">3m</button>
-              <button onclick="updateChart('${ticker}', '6m')">6m</button>
-              <button onclick="updateChart('${ticker}', '1y')">1y</button>
-              <button onclick="updateChart('${ticker}', '5y')">5y</button>
-              <button onclick="updateChart('${ticker}', 'all')">all</button>
-            </div>
-          `;
+                const container = createChartContainer(ticker, tickerData.name);
                 document.getElementById("charts-root").appendChild(container);
                 window.tickerData = window.tickerData || {};
                 window.tickerData[ticker] = tickerData;
               });
           });
         });
+
+      function createChartContainer(ticker, name) {
+        var container = document.createElement("div");
+        container.className = "chart-container";
+
+        var chartDiv = document.createElement("div");
+        chartDiv.id = "chart-" + ticker;
+        chartDiv.className = "chart-div";
+        container.appendChild(chartDiv);
+
+        var btnDiv = document.createElement("div");
+        btnDiv.className = "period-btns";
+        ["1M", "3M", "6M", "1Y", "MAX"].forEach(function (period) {
+          var btn = document.createElement("button");
+          btn.innerText = period;
+          btn.onclick = function () {
+            updateChart(ticker, period);
+          };
+          btnDiv.appendChild(btn);
+        });
+        container.appendChild(btnDiv);
+
+        var nameDiv = document.createElement("div");
+        nameDiv.className = "ticker-name";
+        nameDiv.innerText = name;
+        container.appendChild(nameDiv);
+
+        return container;
+      }
 
       function getPeriodDates(dates, period) {
         var end = new Date(dates[dates.length - 1]);
@@ -85,18 +129,44 @@
         var showDates = dates.slice(idxStart, idxEnd + 1);
         var showPrices = prices.slice(idxStart, idxEnd + 1);
         var showColors = colors.slice(idxStart, idxEnd + 1);
-        var trace = {
-          x: showDates,
-          y: showPrices,
-          mode: "lines",
-          line: { color: "black" },
-          marker: { color: showColors },
-          name: "",
-        };
-        Plotly.react("chart-" + ticker, [trace], {
+
+        // 구간별 색상 trace 분리
+        var traces = [];
+        var currentColor = null;
+        var segX = [];
+        var segY = [];
+        for (var i = 0; i < showDates.length; i++) {
+          var color = showColors[i];
+          if (color !== currentColor && segX.length > 0) {
+            traces.push({
+              x: segX,
+              y: segY,
+              mode: "lines",
+              line: { color: currentColor, width: 2 },
+              name: currentColor,
+            });
+            segX = [];
+            segY = [];
+          }
+          currentColor = color;
+          segX.push(showDates[i]);
+          segY.push(showPrices[i]);
+        }
+        if (segX.length > 0) {
+          traces.push({
+            x: segX,
+            y: segY,
+            mode: "lines",
+            line: { color: currentColor, width: 2 },
+            name: currentColor,
+          });
+        }
+
+        Plotly.react("chart-" + ticker, traces, {
           title: "",
           width: 500,
           height: 400,
+          showlegend: false,
         });
       }
 
