@@ -57,6 +57,7 @@ for ticker in all_tickers:
         close = close.iloc[:, 0]
     # CPIAUCSL이면 MoM 변동률로 저장
     if ticker == "CPIAUCSL":
+        close = pd.to_numeric(close, errors="coerce")
         mom = close.pct_change() * 100
         prices = [float(p) if pd.notnull(p) else None for p in mom]
     else:
