@@ -56,12 +56,7 @@ for ticker in all_tickers:
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
     # CPIAUCSL이면 MoM 변동률로 저장
-    if ticker == "CPIAUCSL":
-        close = pd.to_numeric(close, errors="coerce")
-        mom = close.pct_change() * 1000
-        prices = [round(float(p), 2) if pd.notnull(p) else None for p in mom]
-    else:
-        prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
+    prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
     colors = []
     for idx, row in df.iterrows():
         colors.append('red' if condition(row, df) else 'black')
