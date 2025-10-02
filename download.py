@@ -57,14 +57,7 @@ for ticker in all_tickers:
         close = close.iloc[:, 0]
     # CPIAUCSL이면 MoM 변동률로 저장
     # CPIAUCSL이면 MoM 변동률로 저장, 아니면 그냥 저장
-    if ticker == "CPIAUCSL":
-        prices = [
-            (float(close.iloc[i]) - float(close.iloc[i - 1])) / float(close.iloc[i - 1]) * 100
-            for i in range(1, len(close))
-            if isinstance(close.iloc[i], (int, float, complex)) and isinstance(close.iloc[i - 1], (int, float, complex))
-        ]
-        dates = dates[1:]
-    else:
+
         prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
             
     colors = []
