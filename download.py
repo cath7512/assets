@@ -56,7 +56,18 @@ for ticker in all_tickers:
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
     # CPIAUCSL이면 MoM 변동률로 저장
-    prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
+    # CPIAUCSL이면 MoM 변동률로 저장, 아니면 그냥 저장
+    if ticker == "CPIAUCSL":
+        prices = [
+            (float(close[i]) - float(close[i - 1])) / float(close[i - 1]) * 100
+            for i in range(1, len(close))
+            if isinstance(close[i], (int, float, complex)) and isinstance(close[i - 1], (int, float, complex))
+        ]
+        # 날짜도 변동률에 맞춰 한 칸 줄이기
+        dates = dates[1:]
+    else:
+        prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
+    
     colors = []
     for idx, row in df.iterrows():
         colors.append('red' if condition(row, df) else 'black')
