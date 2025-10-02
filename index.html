@@ -65,6 +65,8 @@
         .then((data) => {
           const tickers = data.tickers;
           const keyIndices = data["key indices"];
+          const chartsRoot = document.getElementById("charts-root");
+          chartsRoot.innerHTML = "";
           // key indices 차트 먼저 생성
           Promise.all(
             keyIndices.map((ticker) =>
@@ -82,12 +84,7 @@
             chartDiv.id = "chart-key-indices";
             chartDiv.className = "chart-div";
             container.appendChild(chartDiv);
-            var chartsRoot = document.getElementById("charts-root");
-            if (chartsRoot.firstChild) {
-              chartsRoot.insertBefore(container, chartsRoot.firstChild);
-            } else {
-              chartsRoot.appendChild(container);
-            }
+            chartsRoot.appendChild(container);
             // 차트 데이터 준비 (null 값 제거)
             var traces = [];
             function filterValidMonthly(d) {
@@ -172,17 +169,20 @@
                 position: 0.95,
               },
             });
-          });
-          // 나머지 개별 티커 차트 생성
-          tickers.forEach((ticker) => {
-            fetch(`tickers/${ticker}.json`)
-              .then((response) => response.json())
-              .then((tickerData) => {
-                const container = createChartContainer(ticker, tickerData.name);
-                document.getElementById("charts-root").appendChild(container);
-                window.tickerData = window.tickerData || {};
-                window.tickerData[ticker] = tickerData;
-              });
+            // 나머지 개별 티커 차트 생성
+            tickers.forEach((ticker) => {
+              fetch(`tickers/${ticker}.json`)
+                .then((response) => response.json())
+                .then((tickerData) => {
+                  const container = createChartContainer(
+                    ticker,
+                    tickerData.name
+                  );
+                  chartsRoot.appendChild(container);
+                  window.tickerData = window.tickerData || {};
+                  window.tickerData[ticker] = tickerData;
+                });
+            });
           });
         });
 
