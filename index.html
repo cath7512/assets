@@ -177,6 +177,7 @@
                   chartsRoot.appendChild(container);
                   window.tickerData = window.tickerData || {};
                   window.tickerData[ticker] = tickerData;
+                  updateChart(ticker, "5Y"); // 데이터 로드 후 즉시 차트 렌더링
                 });
             });
           });
