@@ -59,7 +59,7 @@ for ticker in all_tickers:
     if ticker == "CPIAUCSL":
         close = pd.to_numeric(close, errors="coerce")
         mom = close.pct_change() * 100
-        prices = [float(p) if pd.notnull(p) else None for p in mom]
+        prices = [round(float(p), 2) if pd.notnull(p) else None for p in mom]
     else:
         prices = [float(p) for p in close if isinstance(p, (int, float, complex))]
     colors = []
