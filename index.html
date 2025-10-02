@@ -82,7 +82,12 @@
             chartDiv.id = "chart-key-indices";
             chartDiv.className = "chart-div";
             container.appendChild(chartDiv);
-            document.getElementById("charts-root").appendChild(container);
+            var chartsRoot = document.getElementById("charts-root");
+            if (chartsRoot.firstChild) {
+              chartsRoot.insertBefore(container, chartsRoot.firstChild);
+            } else {
+              chartsRoot.appendChild(container);
+            }
             // 차트 데이터 준비 (null 값 제거)
             var traces = [];
             function filterValidMonthly(d) {
